@@ -117,6 +117,7 @@ COMMENT_WITH_NL = tokenize.generate_tokens(['#\n'].pop).send(None)[1] == '#\n'
 ##############################################################################
 
 
+# tab 和 空格不能混淆
 def tabs_or_spaces(physical_line, indent_char):
     r"""
     Never mix tabs and spaces.
@@ -131,12 +132,14 @@ def tabs_or_spaces(physical_line, indent_char):
     Okay: if a == 0:\n        a = 1\n        b = 1
     E101: if a == 0:\n        a = 1\n\tb = 1
     """
+    # 匹配\t 和 空格
     indent = INDENT_REGEX.match(physical_line).group(1)
     for offset, char in enumerate(indent):
         if char != indent_char:
             return offset, "E101 indentation contains mixed spaces and tabs"
 
 
+# 空白字符不要包含 tab
 def tabs_obsolete(physical_line):
     r"""
     For new projects, spaces-only are strongly recommended over tabs.  Most
@@ -150,6 +153,7 @@ def tabs_obsolete(physical_line):
         return indent.index('\t'), "W191 indentation contains tabs"
 
 
+# 每行不要有末尾空白字符
 def trailing_whitespace(physical_line):
     r"""
     JCR: Trailing whitespace is superfluous.
@@ -180,6 +184,7 @@ def trailing_whitespace(physical_line):
             return 0, "W293 blank line contains whitespace"
 
 
+# 在文件末尾不要有多余的空行
 def trailing_blank_lines(physical_line, lines, line_number):
     r"""
     JCR: Trailing blank lines are superfluous.
@@ -191,6 +196,7 @@ def trailing_blank_lines(physical_line, lines, line_number):
         return 0, "W391 blank line at end of file"
 
 
+# 文件末尾要有统一的换行
 def missing_newline(physical_line):
     """
     JCR: The last line should have a newline.
