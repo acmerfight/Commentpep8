@@ -1263,6 +1263,7 @@ class Checker(object):
                 offset, text = result
                 self.report_error(self.line_number, offset, text, check)
 
+    # 通过 解析出来的token，构建成一个逻辑行
     def build_tokens_line(self):
         """
         Build a logical line from tokens.
@@ -1277,6 +1278,7 @@ class Checker(object):
                 continue
             if token_type == tokenize.STRING:
                 text = mute_string(text)
+            # 判断有没有token之间有没有空格，如果有空格，需要把空格加入逻辑行
             if previous:
                 end_row, end = previous[3]
                 start_row, start = token[2]
@@ -1294,6 +1296,7 @@ class Checker(object):
             logical.append(text)
             length += len(text)
             previous = token
+        # 把token组合成逻辑行，以便进行检查
         self.logical_line = ''.join(logical)
         # With Python 2, if the line ends with '\r\r\n' the assertion fails
         # assert self.logical_line.strip() == self.logical_line
@@ -1302,17 +1305,22 @@ class Checker(object):
         """
         Build a line from tokens and run all logical checks on it.
         """
+        # 通过tokens 整合成逻辑行
         self.build_tokens_line()
+        # 逻辑行加一
         self.report.increment_logical_line()
         first_line = self.lines[self.mapping[0][1][2][0] - 1]
+        # 空格的数目
         indent = first_line[:self.mapping[0][1][2][1]]
         self.previous_indent_level = self.indent_level
         self.indent_level = expand_indent(indent)
         if self.verbose >= 2:
             print(self.logical_line[:80].rstrip())
+        # 遍历每个逻辑检查函数, 并运行检查当前逻辑行
         for name, check, argument_names in self._logical_checks:
             if self.verbose >= 4:
                 print('   ' + name)
+            # 运行每个逻辑行检查函数
             for result in self.run_check(check, argument_names):
                 offset, text = result
                 if isinstance(offset, tuple):
@@ -1322,6 +1330,7 @@ class Checker(object):
                         if offset >= token_offset:
                             orig_number = token[2][0]
                             orig_offset = (token[2][1] + offset - token_offset)
+                # 分析错误报告
                 self.report_error(orig_number, orig_offset, text, check)
         self.previous_logical = self.logical_line
 
@@ -1381,6 +1390,7 @@ class Checker(object):
                 if token_type == tokenize.NEWLINE:
                     if self.blank_lines < blank_lines_before_comment:
                         self.blank_lines = blank_lines_before_comment
+                    # 判断出一个逻辑行 然后进行逻辑检查
                     self.check_logical()
                     self.tokens = []
                     self.blank_lines = blank_lines_before_comment = 0
@@ -1436,11 +1446,15 @@ class BaseReport(object):
         """Signal a new logical line."""
         self.counters['logical lines'] += 1
 
+    # 根据命令行的参数，返回相应的错误
     def error(self, line_number, offset, text, check):
         """Report an error, according to options."""
+        # 获取错误标记码
         code = text[:4]
+        # 检查是否是被忽略的错误
         if self._ignore_code(code):
             return
+        # 统计相同错误的个数
         if code in self.counters:
             self.counters[code] += 1
         else:
@@ -1513,12 +1527,14 @@ class StandardReport(BaseReport):
         """
         code = super(StandardReport, self).error(line_number, offset,
                                                  text, check)
+        # 错误是否存在而且错误是第一次出现 或者 错误需要重复显示
         if code and (self.counters[code] == 1 or self._repeat):
             print(self._fmt % {
                 'path': self.filename,
                 'row': self.line_offset + line_number, 'col': offset + 1,
                 'code': code, 'text': text[5:],
             })
+            # 是否显示错误的源代码
             if self._show_source:
                 if line_number > len(self.lines):
                     line = ''
@@ -1526,6 +1542,7 @@ class StandardReport(BaseReport):
                     line = self.lines[line_number - 1]
                 print(line.rstrip())
                 print(' ' * offset + '^')
+            # 是否显示相应的PEP8规则
             if self._show_pep8:
                 print(check.__doc__.lstrip('\n').rstrip())
         return code
