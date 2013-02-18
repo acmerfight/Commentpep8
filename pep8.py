@@ -948,6 +948,7 @@ def comparison_to_singleton(logical_line):
             code = 'E712'
             nonzero = ((singleton == 'True' and same) or
                        (singleton == 'False' and not same))
+            # 简洁的字符串拼接
             msg += " or 'if %scond:'" % ('' if nonzero else 'not ')
         yield match.start(1), ("%s comparison to %s should be %s" %
                                (code, singleton, msg))
