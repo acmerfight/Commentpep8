@@ -206,7 +206,7 @@ def missing_newline(physical_line):
     if physical_line.rstrip() == physical_line:
         return len(physical_line), "W292 no newline at end of file"
 
-
+# 检测每行的最大长度
 def maximum_line_length(physical_line, max_line_length):
     """
     Limit all lines to a maximum of 79 characters.
@@ -225,6 +225,7 @@ def maximum_line_length(physical_line, max_line_length):
     if length > max_line_length:
         if noqa(line):
             return
+        # 出现多种编码的情况
         if hasattr(line, 'decode'):   # Python 2
             # The line could contain multi-byte characters
             try:
@@ -265,16 +266,20 @@ def blank_lines(logical_line, blank_lines, indent_level, line_number,
     """
     if line_number == 1:
         return  # Don't expect blank lines before the first line
+    # 检测装饰器下边不能有空行
     if previous_logical.startswith('@'):
         if blank_lines:
             yield 0, "E304 blank lines found after function decorator"
+    # 空格的个数
     elif blank_lines > 2 or (indent_level and blank_lines == 2):
         yield 0, "E303 too many blank lines (%d)" % blank_lines
+    # 定义在类和函数里的函数需要有一个空行间隔
     elif logical_line.startswith(('def ', 'class ', '@')):
         if indent_level:
             if not (blank_lines or previous_indent_level < indent_level or
                     DOCSTRING_REGEX.match(previous_logical)):
                 yield 0, "E301 expected 1 blank line, found 0"
+        # 没有定义在类和函数的函数之间需要有两个空行间隔
         elif blank_lines != 2:
             yield 0, "E302 expected 2 blank lines, found %d" % blank_lines
 
@@ -288,7 +293,7 @@ def extraneous_whitespace(logical_line):
     - Immediately before a comma, semicolon, or colon.
 
     Okay: spam(ham[1], {eggs: 2})
-    E201: spam( ham[1], {eggs: 2})
+    E201 spam( ham[1], {eggs: 2})
     E201: spam(ham[ 1], {eggs: 2})
     E201: spam(ham[1], { eggs: 2})
     E202: spam(ham[1], {eggs: 2} )
@@ -307,11 +312,13 @@ def extraneous_whitespace(logical_line):
         if text == char + ' ':
             # assert char in '([{'
             yield found + 1, "E201 whitespace after '%s'" % char
+        # 判断是不是逗号，是逗号的话避免可以有空格，避免进行下边的判断
         elif line[found - 1] != ',':
             code = ('E202' if char in '}])' else 'E203')  # if char in ',;:'
             yield found, "%s whitespace before '%s'" % (code, char)
 
 
+# 避免关键词旁有多余的空格
 def whitespace_around_keywords(logical_line):
     r"""
     Avoid extraneous whitespace around keywords.
@@ -336,6 +343,7 @@ def whitespace_around_keywords(logical_line):
             yield match.start(2), "E271 multiple spaces after keyword"
 
 
+# 丢失空格的情况
 def missing_whitespace(logical_line):
     """
     JCR: Each comma, semicolon or colon should be followed by whitespace.
@@ -355,6 +363,7 @@ def missing_whitespace(logical_line):
         char = line[index]
         if char in ',;:' and line[index + 1] not in WHITESPACE:
             before = line[:index]
+            # 排除特殊的切片操作和元组的单元素情况
             if char == ':' and before.count('[') > before.count(']') and \
                     before.rfind('{') < before.rfind('['):
                 continue  # Slice syntax, no space required
@@ -363,6 +372,7 @@ def missing_whitespace(logical_line):
             yield index, "E231 missing whitespace after '%s'" % char
 
 
+# 用四个空格作为缩进标准
 def indentation(logical_line, previous_logical, indent_char,
                 indent_level, previous_indent_level):
     r"""
@@ -383,6 +393,7 @@ def indentation(logical_line, previous_logical, indent_char,
     """
     if indent_char == ' ' and indent_level % 4:
         yield 0, "E111 indentation is not a multiple of four"
+    # 是否期望有空格
     indent_expect = previous_logical.endswith(':')
     if indent_expect and indent_level <= previous_indent_level:
         yield 0, "E112 expected an indented block"
@@ -554,6 +565,7 @@ def continuation_line_indentation(logical_line, tokens, indent_level, verbose):
                "itself from next logical line")
 
 
+# 判断括号旁边的空格不是多余
 def whitespace_before_parameters(logical_line, tokens):
     """
     Avoid extraneous whitespace in the following situations:
@@ -578,18 +590,19 @@ def whitespace_before_parameters(logical_line, tokens):
         token_type, text, start, end, line = tokens[index]
         if (token_type == tokenize.OP and
             text in '([' and
-            start != prev_end and
+            start != prev_end and # 判断是否存在空格
             (prev_type == tokenize.NAME or prev_text in '}])') and
             # Syntax "class A (B):" is allowed, but avoid it
             (index < 2 or tokens[index - 2][1] != 'class') and
                 # Allow "return (a.foo for a in range(5))"
-                not keyword.iskeyword(prev_text)):
+                not keyword.iskeyword(prev_text)): # 不是关键字的情况
             yield prev_end, "E211 whitespace before '%s'" % text
         prev_type = token_type
         prev_text = text
         prev_end = end
 
 
+# 运算符旁边是不是多余的空格
 def whitespace_around_operator(logical_line):
     r"""
     Avoid extraneous whitespace in the following situations:
@@ -780,6 +793,7 @@ def whitespace_around_named_parameter_equals(logical_line, tokens):
         prev_end = end
 
 
+# 行内注释的标准
 def whitespace_before_inline_comment(logical_line, tokens):
     """
     Separate inline comments by at least two spaces.
@@ -891,6 +905,7 @@ def explicit_line_join(logical_line, tokens):
     """
     prev_start = prev_end = parens = 0
     for token_type, text, start, end, line in tokens:
+        # 判断条件是 不在同一行,在括号内，有反斜线
         if start[0] != prev_start and parens and backslash:
             yield backslash, "E502 the backslash is redundant between brackets"
         if end[0] != prev_end:
