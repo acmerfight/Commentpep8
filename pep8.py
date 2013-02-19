@@ -1227,6 +1227,7 @@ class Checker(object):
         elif filename == '-':
             self.filename = 'stdin'
             self.lines = stdin_get_value().splitlines(True)
+        # 读取文件
         elif lines is None:
             try:
                 self.lines = readlines(filename)
@@ -1337,9 +1338,11 @@ class Checker(object):
         # 逻辑行加一
         self.report.increment_logical_line()
         first_line = self.lines[self.mapping[0][1][2][0] - 1]
-        # 空格的数目
+        # 获取空格 
         indent = first_line[:self.mapping[0][1][2][1]]
+        # 上一行的缩进标准
         self.previous_indent_level = self.indent_level
+        # 计算出这行的空格个数, 是这一行的空格标准
         self.indent_level = expand_indent(indent)
         if self.verbose >= 2:
             print(self.logical_line[:80].rstrip())
@@ -1375,6 +1378,7 @@ class Checker(object):
     def generate_tokens(self):
         if self._io_error:
             self.report_error(1, 0, 'E902 %s' % self._io_error, readlines)
+        # 在这里运行了物理检查函数
         tokengen = tokenize.generate_tokens(self.readline_check_physical)
         try:
             for token in tokengen:
@@ -1424,7 +1428,7 @@ class Checker(object):
                 #逻辑行跨越多个物理行的情况
                 elif token_type == tokenize.NL:
                     if len(self.tokens) == 1:
-                        # 物理行只包含这一行
+                        # 物理行只包含这个token
                         # The physical line contains only this token.
                         self.blank_lines += 1
                     self.tokens = []
@@ -1700,7 +1704,9 @@ class StyleGuide(object):
         # 是不是要显示检查文件的名字
         if self.options.verbose:
             print('checking %s' % filename)
+        # 根据已有的参数 初始化一个检查类的示例
         fchecker = Checker(filename, lines=lines, options=self.options)
+        # 调用检查类的示例的检查函数,产生检查报告
         return fchecker.check_all(expected=expected, line_offset=line_offset)
 
     def input_dir(self, dirname):
