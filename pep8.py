@@ -1,3 +1,4 @@
+# coding=utf-8
 #!/usr/bin/env python
 # pep8.py - Check Python source code formatting, according to PEP 8
 # Copyright (C) 2006-2009 Johann C. Rocholl <johann@rocholl.net>
@@ -84,7 +85,7 @@ WS_OPTIONAL_OPERATORS = frozenset(['**', '*', '/', '//', '+', '-'])
 WS_NEEDED_OPERATORS = frozenset([
     '**=', '*=', '/=', '//=', '+=', '-=', '!=', '<>',
     '%=', '^=', '&=', '|=', '==', '<=', '>=', '<<=', '>>=',
-    '%',  '^',  '&',  '|',  '=',  '<',  '>',  '<<'])
+    '%', '^', '&', '|', '=', '<', '>', '<<'])
 WHITESPACE = frozenset(' \t')
 SKIP_TOKENS = frozenset([tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE,
                          tokenize.INDENT, tokenize.DEDENT])
@@ -207,6 +208,8 @@ def missing_newline(physical_line):
         return len(physical_line), "W292 no newline at end of file"
 
 # 检测每行的最大长度
+
+
 def maximum_line_length(physical_line, max_line_length):
     """
     Limit all lines to a maximum of 79 characters.
@@ -590,12 +593,12 @@ def whitespace_before_parameters(logical_line, tokens):
         token_type, text, start, end, line = tokens[index]
         if (token_type == tokenize.OP and
             text in '([' and
-            start != prev_end and # 判断是否存在空格
+            start != prev_end and  # 判断是否存在空格
             (prev_type == tokenize.NAME or prev_text in '}])') and
             # Syntax "class A (B):" is allowed, but avoid it
             (index < 2 or tokens[index - 2][1] != 'class') and
                 # Allow "return (a.foo for a in range(5))"
-                not keyword.iskeyword(prev_text)): # 不是关键字的情况
+                not keyword.iskeyword(prev_text)):  # 不是关键字的情况
             yield prev_end, "E211 whitespace before '%s'" % text
         prev_type = token_type
         prev_text = text
@@ -1171,6 +1174,8 @@ def filename_match(filename, patterns, default=True):
 _checks = {'physical_line': {}, 'logical_line': {}, 'tree': {}}
 
 
+# 通过register_check 和 init_checks_registry 两个函数通过检查函数的第一个参数将物理行
+# 逻辑行检查函数，绑定到_checks字典中
 def register_check(check, codes=None):
     """
     Register a new check object.
@@ -1443,6 +1448,7 @@ class BaseReport(object):
         # Results
         self.elapsed = 0
         self.total_errors = 0
+        # 构建一个字典 统计'files' 'physical lines' 'directories''logical lines'
         self.counters = dict.fromkeys(self._benchmark_keys, 0)
         self.messages = {}
 
@@ -1536,7 +1542,9 @@ class StandardReport(BaseReport):
     """Collect and print the results of the checks."""
 
     def __init__(self, options):
+        # 首先调用父类BaseReport的初始化函数
         super(StandardReport, self).__init__(options)
+        # 报告格式
         self._fmt = REPORT_FORMAT.get(options.format.lower(),
                                       options.format)
         self._repeat = options.repeat
@@ -1656,7 +1664,7 @@ class StyleGuide(object):
         options.ignore = tuple(options.ignore or options.select and ('',))
         options.benchmark_keys = BENCHMARK_KEYS[:]
         options.ignore_code = self.ignore_code
-        # 分别对物理行 逻辑行加入相对应的检查函数 
+        # 分别对物理行 逻辑行加入相对应的检查函数
         options.physical_checks = self.get_checks('physical_line')
         options.logical_checks = self.get_checks('logical_line')
         options.ast_checks = self.get_checks('tree')
@@ -1664,6 +1672,7 @@ class StyleGuide(object):
 
     def init_report(self, reporter=None):
         """Initialize the report instance."""
+        # 后一个括号的参数传入第一个括号的函数或类
         self.options.report = (reporter or self.options.reporter)(self.options)
         return self.options.report
 
@@ -1678,15 +1687,17 @@ class StyleGuide(object):
         # 判断输入的参数是文件还是目录，并分别进行检查
         for path in paths:
             if os.path.isdir(path):
-                # 如果是目录，检查目录里的函数 
+                # 如果是目录，检查目录里的函数
                 self.input_dir(path)
             elif not self.excluded(path):
+                # 开始运行检查函数
                 runner(path)
         report.stop()
         return report
 
     def input_file(self, filename, lines=None, expected=None, line_offset=0):
         """Run all checks on a Python source file."""
+        # 是不是要显示检查文件的名字
         if self.options.verbose:
             print('checking %s' % filename)
         fchecker = Checker(filename, lines=lines, options=self.options)
@@ -1735,6 +1746,7 @@ class StyleGuide(object):
         return (code.startswith(self.options.ignore) and
                 not code.startswith(self.options.select))
 
+    # 根据argument将不同类型的检查函数加入checks列表
     def get_checks(self, argument_name):
         """
         Find all globally visible functions where the first argument name
@@ -1743,6 +1755,7 @@ class StyleGuide(object):
         checks = []
         for check, attrs in _checks[argument_name].items():
             (codes, args) = attrs
+            # 是不是有被忽略的检查
             if any(not (code and self.ignore_code(code)) for code in codes):
                 checks.append((check.__name__, check, args))
         return sorted(checks)
@@ -1957,7 +1970,7 @@ def read_config(options, args, arglist, parser):
 
 
 # 进行参数的默认设置, 包括读取配置文件进行默认参数设置，最后返回命令行的参数
-# 和参数的默认值，并返回需要处理的文件或者目录 
+# 和参数的默认值，并返回需要处理的文件或者目录
 def process_options(arglist=None, parse_argv=False, config_file=None,
                     parser=None):
     """Process options passed either via arglist or via command line args."""
@@ -2032,6 +2045,7 @@ def _main():
             sys.exit(1)
     if options.testsuite:
         init_tests(pep8style)
+    # 运行检查函数
     report = pep8style.check_files()
     if options.statistics:
         report.print_statistics()
